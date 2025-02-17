@@ -1,2 +1,2 @@
 ぜひともこちらにアクセスあれ
-applegacy.github.io/isutori/
+<a href="applegacy.github.io/isutori/">applegacy.github.io/isutori/</a>
