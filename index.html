@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>椅子取りゲーマー</title>
+    <style>
+        #file1 {
+            display: none;
+        }
+
+        body {
+            font-family: sans-serif;
+            text-align: center;
+        }
+
+        .select {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .select .btn {
+            display: inline-block;
+            font-weight: bold;
+            padding: 0.5em 1em;
+            text-decoration: none;
+            color: #00bcd4;
+            background: #ececec;
+            transition: 0.2s;
+            border: 0.5px solid #bdbdbd;
+            border-right: 0;
+            cursor: pointer;
+        }
+
+        .select .btn.active {
+            background: #00bcd4;
+            color: #ececec;
+        }
+
+        .select .btn:hover {
+            opacity: 0.4;
+        }
+
+        .select .btn:first-of-type {
+            border-radius: 10px 0 0 10px;
+        }
+
+        .select .btn:last-of-type {
+            border-radius: 0 10px 10px 0;
+            border: 0.75px solid #272727;
+        }
+
+        #timer {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        #progress-container {
+            width: 80%;
+            background: #ddd;
+            height: 20px;
+            border-radius: 10px;
+            margin: 10px auto;
+            overflow: hidden;
+        }
+
+        #progress-bar {
+            width: 100%;
+            height: 100%;
+            background: #00bcd4;
+            transition: width 0.1s linear;
+        }
+
+        footer {
+            padding-top: 10vh;
+            padding-bottom: 10vh;
+            width: 100%;
+            background: #f0f0f0;
+            text-align: center;
+            font-size: 14px;
+            color: #333;
+            margin-top: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>椅子取りゲーマー</h1>
+    <p>間隔 : 約<input type="number" id="interval" name="interval" max="60" min="0.5" style="width: 2.5rem;">分(小数可)</p>
+    <p><input type="checkbox" id="default" name="default">BGMをデフォルト音源<audio controls controlslist="nodownload" loop
+            preload="metadata">
+            <source src="kingsoul_acou44_roop.mp3" type="audio/mp3">
+            <source src="kingsoul_acou44_roop.ogg" type="audio/ogg">
+            <source src="kingsoul_acou44_roop.m4a" type="audio/mp4">
+            <source src="kingsoul_acou44_roop.m4a" type="audio/m4a">
+            <source src="kingsoul_acou44_roop.m4a" type="audio/aac">
+            <source src="kingsoul_acou44_roop.m4a" type="audio/AAC">
+            <a href="kingsoul_acou44_roop.mp3">mp3</a> もしくは <a href="kingsoul_acou44_roop.ogg">ogg</a> か <a
+                href="kingsoul_acou44_roop.m4a">m4a</a> を参照
+            View <a href="kingsoul_acou44_roop.mp3">MP3</a> or <a href="kingsoul_acou44_roop.ogg">OGG</a> or <a
+                href="kingsoul_acou44_roop.m4a">M4A</a> audio.
+        </audio>にする</p>
+
+    <div class="select">
+        <input id="file1" type="file" accept=".mp3,.m4a,.aac,.wav,.flac,.ogg">
+        <a class="btn"><label for="file1" id="audioInput">ファイルを選択</label></a>
+        <a onclick="playAudio()" class="btn active">再生</a>
+        <a onclick="pauseAudio()" class="btn active">一時停止</a>
+        <a onclick="stopAudio()" class="btn active">強制停止</a>
+    </div>
+
+    <div id="timer">00:00</div>
+    <div id="progress-container">
+        <div id="progress-bar"></div>
+    </div>
+
+    <footer>
+        <h2>このアプリについて</h2>
+        <p>このアプリは、学校で椅子取りゲームをすることになったので、<br>自動化を図るべく作成しました。</p>
+        <h2>使い方</h2>
+        <p>まぁ大体見りゃわかる</p>
+        <h2>詳細情報</h2>
+        <p>======================</p>
+        <p>制作時間 約7時間</p>
+        <p>制作日数 約1週間</p>
+        <p>制作環境 Windows11</p>
+        <p>使用アプリ Firefox Developer Edition</p>
+        <p>　　 Visual Studio Code</p>
+        <p>　エクスプローラー</p>
+        <p>サポート ChatGPT[モデル:GPT 4o]</p>
+        <p>楽曲提供 魔王魂 (<a href="https://maou.audio">https://maou.audio</a>)</p>
+        <p>楽曲名 アコースティック44 (<a href="https://maou.audio/bgm_acoustic44/">https://maou.audio/bgm_acoustic44/</a>)</p>
+        <p>制作 AppLeGacy(個人)</p>
+        <p>======================</p>
+        <small>&copy;2025 　<input type="text" id="copy" value="APP LE GACY" style="width:5rem;" maxlength="65536"
+                minlength="1"></small>
+    </footer>
+
+    <script>
+        let sound = new Audio();
+let timer;
+let animationFrame;
+let isPlaying = false;
+let isPaused = false;
+let startTime = 0;
+let totalTime = 0;
+let remainingPauseTime = 0;
+let loopInterval;
+
+const defaultAudioSrc = "kingsoul_acou44_roop.mp3";
+
+window.addEventListener('load', () => {
+    document.getElementById('file1').addEventListener('change', (evt) => {
+        let input = evt.target;
+        if (input.files.length === 0) return;
+
+        const file = input.files[0];
+        if (!file.type.match('audio.*')) {
+            alert("音声ファイルを選択してください。");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            sound.pause();
+            sound.src = reader.result;
+            sound.onloadedmetadata = () => {
+                if (isPlaying) playAudio();
+            };
+        };
+        reader.readAsDataURL(file);
+    });
+});
+
+function playAudio() {
+    if (isPlaying) {
+        if (isPaused) {
+            resumeAudio();
+        }
+        return;
+    }
+    isPlaying = true;
+    isPaused = false;
+
+    let useDefaultAudio = document.getElementById('default').checked;
+    if (useDefaultAudio) {
+        sound.src = defaultAudioSrc;
+    }
+
+    let interval = parseFloat(document.getElementById('interval').value);
+
+    if (isNaN(interval) || interval < 0.5 || interval > 60) {
+        alert("間隔は0.5分(30秒)以上60分以下に設定してください。");
+        document.getElementById('interval').value = Math.max(0.5, Math.min(interval, 60));
+        isPlaying = false;
+        return;
+    }
+
+    interval = interval * 60;
+    let randomOffset = Math.floor(Math.random() * 31) - 20;
+    totalTime = interval + randomOffset;
+
+    startTime = performance.now() - remainingPauseTime * 1000;
+    sound.play();
+    updateProgress();
+
+    loopInterval = setInterval(checkAndLoopAudio, 1000);
+
+    timer = setTimeout(() => {
+        stopAudio();
+        startWaitTimer();  // 音楽再生後、30秒の待機を開始
+    }, totalTime * 1000);
+}
+
+function pauseAudio() {
+    if (!isPlaying || isPaused) return;
+
+    isPaused = true;
+    sound.pause();
+    remainingPauseTime = (performance.now() - startTime) / 1000;
+    clearTimeout(timer);
+    clearInterval(loopInterval);
+    cancelAnimationFrame(animationFrame);
+}
+
+function resumeAudio() {
+    isPaused = false;
+    startTime = performance.now() - remainingPauseTime * 1000;
+    sound.play();
+    updateProgress();
+
+    loopInterval = setInterval(checkAndLoopAudio, 1000);
+    timer = setTimeout(() => {
+        stopAudio();
+        startWaitTimer();  // 音楽再生後、30秒の待機を開始
+    }, (totalTime - remainingPauseTime) * 1000);
+}
+
+function stopAudio() {
+    if (!isPlaying) return;
+    isPlaying = false;
+    isPaused = false;
+    remainingPauseTime = 0;
+
+    sound.pause();
+    sound.currentTime = 0;
+    clearTimeout(timer);
+    clearInterval(loopInterval);
+    cancelAnimationFrame(animationFrame);
+
+    updateTimerDisplay(0);
+    document.getElementById("progress-bar").style.width = "0%";
+}
+
+function startWaitTimer() {
+    let waitTime = 30;
+    let waitInterval = setInterval(() => {
+        if (isPlaying) {
+            clearInterval(waitInterval);
+            return;
+        }
+        updateTimerDisplay(waitTime);
+        waitTime--;
+        if (waitTime < 0) {
+            clearInterval(waitInterval);
+            // 音楽再生後に次の再生が始まらないように明示的に処理を追加
+            if (!isPlaying) {
+                playAudio();  // 待機後、再生を再開
+            }
+        }
+    }, 1000);
+}
+
+function checkAndLoopAudio() {
+    if (!isPlaying) {
+        clearInterval(loopInterval);
+        return;
+    }
+
+    let remainingTime = totalTime - ((performance.now() - startTime) / 1000);
+    if (remainingTime > 0 && sound.ended) {
+        sound.currentTime = 0;
+        sound.play();
+    }
+}
+
+function updateProgress() {
+    if (!isPlaying) return;
+
+    let elapsed = (performance.now() - startTime) / 1000;
+    let remainingTime = Math.max(0, totalTime - elapsed);
+
+    updateTimerDisplay(remainingTime);
+    document.getElementById("progress-bar").style.width = (remainingTime / totalTime) * 100 + "%";
+
+    if (remainingTime > 0) {
+        animationFrame = requestAnimationFrame(updateProgress);
+    }
+}
+
+function updateTimerDisplay(seconds) {
+    let min = Math.floor(seconds / 60);
+    let sec = Math.floor(seconds % 60);
+    document.getElementById("timer").textContent =
+        (min < 10 ? "0" : "") + min + ":" + (sec < 10 ? "0" : "") + sec;
+}
+
+
+
+    </script>
+
+</body>
+
+</html>
